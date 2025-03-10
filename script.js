@@ -6,12 +6,6 @@ document.addEventListener("DOMContentLoaded", () => {
     // Add event listener for button click
     searchButton.addEventListener("click", () => {
         const countryName = document.getElementById("country-input").value.trim();
-        const countryInfo = document.getElementById("country-info");
-        const bordersSection = document.getElementById("bordering-countries");
-
-        // Clear previous results
-        countryInfo.innerHTML = "";
-        bordersSection.innerHTML = "";
 
         // If input is empty, alert user
         if (countryName === "") {
@@ -30,14 +24,15 @@ document.addEventListener("DOMContentLoaded", () => {
             })
             .then(data => {
                 const country = data[0]; // Access first country from response
+                const countryInfo = document.getElementById("country-info");
+                const bordersSection = document.getElementById("bordering-countries");
 
-                // Display country details with "Flag:" label before the image
+                // Display country details
                 countryInfo.innerHTML = `
                     <h2>${country.name.common}</h2>
                     <p><strong>Capital:</strong> ${country.capital ? country.capital[0] : "N/A"}</p>
                     <p><strong>Population:</strong> ${country.population.toLocaleString()}</p>
                     <p><strong>Region:</strong> ${country.region}</p>
-                    <p><strong>Flag:</strong></p>
                     <img src="${country.flags.png}" alt="Flag of ${country.name.common}" width="150">
                 `;
 
@@ -65,9 +60,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
             })
             .catch(error => {
-                // Handle errors - clear previous results before displaying error
-                countryInfo.innerHTML = `<p>Error: ${error.message}</p>`;
-                bordersSection.innerHTML = ""; // Clear previous bordering countries on error
+                // Handle errors
+                document.getElementById("country-info").innerHTML = `<p>Error: ${error.message}</p>`;
             });
     });
 });
