@@ -9,6 +9,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const countryInfo = document.getElementById("country-info");
         const bordersSection = document.getElementById("bordering-countries");
 
+        
         // Clear previous results
         countryInfo.innerHTML = "";
         bordersSection.innerHTML = "";
