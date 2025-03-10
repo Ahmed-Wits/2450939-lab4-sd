@@ -1,107 +1,73 @@
-// Get DOM elements
-const countryInput = document.getElementById("country-input");
-const searchButton = document.getElementById("search-button");
-const countryInfoSection = document.getElementById("country-info");
-const borderingCountriesSection = document.getElementById("bordering-countries");
+// Wait until the DOM content is fully loaded
+document.addEventListener("DOMContentLoaded", () => {
+    // Select button and input field
+    const searchButton = document.getElementById("search-button");
 
-const capitalElement = document.getElementById("capital");
-const populationElement = document.getElementById("population");
-const regionElement = document.getElementById("region");
-const flagElement = document.getElementById("flag");
+    // Add event listener for button click
+    searchButton.addEventListener("click", () => {
+        const countryName = document.getElementById("country-input").value.trim();
+        const countryInfo = document.getElementById("country-info");
+        const bordersSection = document.getElementById("bordering-countries");
 
-// API URL for fetching country data
-const API_URL = "https://restcountries.com/v3.1/name/";
+        // Clear previous results
+        countryInfo.innerHTML = "";
+        bordersSection.innerHTML = "";
 
-// Event listener for the search button
-searchButton.addEventListener("click", () => {
-    const countryName = countryInput.value.trim(); // Remove extra spaces
-
-    // Check if the input is empty or contains only spaces
-    if (!countryName) {
-        alert("Please enter a valid country name.");
-        return;
-    }
-
-    // Ensure no accidental searches for unintended values
-    if (countryName.length < 2) {
-        alert("Country name must have at least 2 characters.");
-        return;
-    }
-
-    fetchCountryData(countryName);
-});
-
-// Fetch country data from the API
-async function fetchCountryData(country) {
-    try {
-        // Fetch data from the API, enforce exact match with fullText=true
-        const response = await fetch(`${API_URL}${country}?fullText=true`);
-        
-        // Check if the response is OK, otherwise throw an error
-        if (!response.ok) {
-            throw new Error("Country not found. Please enter a valid country name.");
+        // If input is empty, alert user
+        if (countryName === "") {
+            alert("Please enter a country name.");
+            return;
         }
 
-        const data = await response.json();
-        const countryData = data[0]; // Get the first result from the API response
+        // Fetch country data from the REST Countries API
+        fetch(`https://restcountries.com/v3.1/name/${countryName}`)
+            .then(response => {
+                // If response is not okay, throw an error
+                if (!response.ok) {
+                    throw new Error("Country not found");
+                }
+                return response.json(); // Convert response to JSON
+            })
+            .then(data => {
+                const country = data[0]; // Access first country from response
 
-        // Update the DOM with country information
-        capitalElement.textContent = countryData.capital[0] || "N/A";
-        populationElement.textContent = countryData.population.toLocaleString();
-        regionElement.textContent = countryData.region;
+                // Display country details with "Flag:" label before the image
+                countryInfo.innerHTML = `
+                    <h2>${country.name.common}</h2>
+                    <p><strong>Capital:</strong> ${country.capital ? country.capital[0] : "N/A"}</p>
+                    <p><strong>Population:</strong> ${country.population.toLocaleString()}</p>
+                    <p><strong>Region:</strong> ${country.region}</p>
+                    <p><strong>Flag:</strong></p>
+                    <img src="${country.flags.png}" alt="Flag of ${country.name.common}" width="150">
+                `;
 
-        // Set the country's flag
-        flagElement.src = countryData.flags.png;
-        flagElement.alt = `${countryData.name.common} Flag`;
+                // Check if country has neighboring countries
+                if (country.borders && country.borders.length > 0) {
+                    bordersSection.innerHTML = "<h3>Bordering Countries:</h3>";
 
-        // Fetch and display neighbouring countries' information
-        displayBorderingCountries(countryData.borders || []);
-    } catch (error) {
-        alert(error.message);
-        clearResults(); // Clear previous results if there was an error
-    }
-}
-
-// Function to display bordering countries
-function displayBorderingCountries(borders) {
-    // Clear previous bordering countries' results
-    borderingCountriesSection.innerHTML = "";
-
-    if (borders.length === 0) {
-        borderingCountriesSection.innerHTML = "<p>No bordering countries.</p>";
-        return;
-    }
-
-    borders.forEach(async (border) => {
-        try {
-            const response = await fetch(`${API_URL}${border}?fullText=true`);
-            const data = await response.json();
-            const borderCountry = data[0]; // Get the first result for the border country
-
-            const borderElement = document.createElement("div");
-            borderElement.classList.add("border-country");
-
-            const flagElement = document.createElement("img");
-            flagElement.src = borderCountry.flags.png;
-            flagElement.alt = `${borderCountry.name.common} Flag`;
-
-            const nameElement = document.createElement("p");
-            nameElement.textContent = borderCountry.name.common;
-
-            borderElement.appendChild(flagElement);
-            borderElement.appendChild(nameElement);
-            borderingCountriesSection.appendChild(borderElement);
-        } catch (error) {
-            console.error("Error fetching bordering country data:", error);
-        }
+                    // Loop through each border country
+                    country.borders.forEach(border => {
+                        fetch(`https://restcountries.com/v3.1/alpha/${border}`)
+                            .then(response => response.json())
+                            .then(borderData => {
+                                const borderCountry = borderData[0];
+                                const borderDiv = document.createElement("div");
+                                borderDiv.innerHTML = `
+                                    <p>${borderCountry.name.common}</p>
+                                    <img src="${borderCountry.flags.png}" width="100">
+                                `;
+                                bordersSection.appendChild(borderDiv);
+                            })
+                            .catch(error => console.error("Error fetching border country:", error));
+                    });
+                } else {
+                    bordersSection.innerHTML = "<p>No bordering countries.</p>";
+                }
+            })
+            .catch(error => {
+                // Handle errors - clear previous results before displaying error
+                countryInfo.innerHTML = `<p>Error: ${error.message}</p>`;
+                bordersSection.innerHTML = ""; // Clear previous bordering countries on error
+            });
     });
-}
-
-// Function to clear previous results
-function clearResults() {
-    capitalElement.textContent = "";
-    populationElement.textContent = "";
-    regionElement.textContent = "";
-    flagElement.src = "";
-    borderingCountriesSection.innerHTML = "";
-}
+});
